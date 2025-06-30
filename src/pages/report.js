@@ -327,9 +327,7 @@ export const ReportsPage = () => {
           )}
           <DetailedReportTable trips={report} />
         </>
-      ) : (
-        <p className="mt-4">Не найдено</p>
-      )}
+      ) : null}
     </div>
   );
 };
