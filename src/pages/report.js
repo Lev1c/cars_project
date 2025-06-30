@@ -13,79 +13,201 @@ import {
   Tab,
 } from "@heroui/react";
 import { Icon } from "@iconify/react";
-import {
-  mockVehicles,
-  generateMileageReport,
-  generateDetailedReport,
-} from "../data/mock-data.ts";
+
 import { DetailedReportTable } from "../components/detailed-report-table";
+import { useAuth } from "../context/auth-context.js";
+import { VehicleMapReport } from "../components/vehicle-map-report.js";
 
 export const ReportsPage = () => {
-  const location = useLocation();
-  const [selectedVehicleId, setSelectedVehicleId] = useState(
-    location.state?.selectedVehicleId || ""
-  );
-  const [selectedReportType, setSelectedReportType] = useState("detailed");
+  const { reportList, dataCar } = useAuth();
+
+  const [listType, setListType] = useState();
+  const [carlistType, setCarListType] = useState();
+  const [selectedCarId, setSelectedCarId] = useState();
+  const [selectedVehicleId, setSelectedVehicleId] = useState();
+  const [aid, setAid] = useState();
+  const [mapCord, setMapCord] = useState();
+
   const [startDate, setStartDate] = useState(() => {
-    const date = new Date();
-    date.setDate(date.getDate() - 7);
-    return date.toISOString().split("T")[0];
+    const now = new Date();
+    const timestamp = Date.UTC(
+      now.getFullYear(),
+      now.getMonth(),
+      now.getDate(),
+      0,
+      0,
+      0
+    );
+    return Math.floor(timestamp / 1000);
   });
+
   const [endDate, setEndDate] = useState(() => {
-    return new Date().toISOString().split("T")[0];
+    const now = new Date();
+    const timestamp = Date.UTC(
+      now.getFullYear(),
+      now.getMonth(),
+      now.getDate(),
+      23,
+      59,
+      59
+    );
+    return Math.floor(timestamp / 1000);
   });
+
+  useEffect(() => {
+    const fetchVehicle = async () => {
+      try {
+        await new Promise((resolve) => setTimeout(resolve, 800));
+
+        setListType(reportList);
+        setCarListType(dataCar.items);
+      } catch (e) {
+        console.log(e);
+      }
+    };
+
+    fetchVehicle();
+  }, []);
+
   const [isGenerating, setIsGenerating] = useState(false);
   const [report, setReport] = useState(null);
-  const [activeTab, setActiveTab] = useState("generator");
-  const [savedReports, setSavedReports] = useState([]);
-  const [detailedReport, setDetailedReport] = useState(null);
 
-  const reportTypes = [
-    { key: "detailed", label: "Детальный отчет" },
-    { key: "mileage", label: "Пробег" },
-    { key: "fuel", label: "Расход топлива" },
-    { key: "activity", label: "Активность" },
-    { key: "maintenance", label: "Техобслуживание" },
-  ];
+  const [savedReports, setSavedReports] = useState();
 
-  const handleGenerateReport = () => {
-    if (!selectedVehicleId || !startDate || !endDate) return;
+  const sid = localStorage.getItem("sid");
+  const s = localStorage.getItem("server");
+
+  console.log(dataCar);
+
+  function extractAndParseXML(rawText, tableId = "unit_trips") {
+    const xmlStart = rawText.indexOf("<");
+    if (xmlStart === -1) {
+      throw new Error("В ответе нет XML");
+    }
+
+    const xmlText = rawText.slice(xmlStart);
+
+    const parser = new DOMParser();
+    const xmlDoc = parser.parseFromString(xmlText, "text/xml");
+
+    const parserError = xmlDoc.querySelector("parsererror");
+    if (parserError) {
+      throw new Error("Ошибка парсинга XML: " + parserError.textContent);
+    }
+
+    const tripsTable = xmlDoc.querySelector(`table[id="${tableId}"]`);
+    if (!tripsTable) {
+      throw new Error(`Таблица ${tableId} не найдена в отчёте`);
+    }
+
+    const rows = Array.from(tripsTable.querySelectorAll("row"));
+    const tripsData = rows.map((row) => {
+      const cols = Array.from(row.querySelectorAll("col"));
+      return cols.map((col) => col.getAttribute("txt") || "");
+    });
+
+    const headerElem = tripsTable.querySelector("header");
+    const tripsDataHeader = headerElem
+      ? Array.from(headerElem.querySelectorAll("col")).map(
+          (col) => col.getAttribute("name") || ""
+        )
+      : [];
+
+    const tripsTabl = xmlDoc.querySelector(`stats`);
+    if (!tripsTabl) {
+      throw new Error(`Таблица не найдена в отчёте`);
+    }
+
+    const statsNode = xmlDoc.querySelector("stats");
+    if (!statsNode) {
+      throw new Error("Статистика не найдена в отчёте");
+    }
+
+    const stats = Array.from(statsNode.querySelectorAll("row")).map((row) => ({
+      name: row.getAttribute("name") || "",
+      txt: row.getAttribute("txt") || "",
+      val: row.getAttribute("val") || "",
+      vt: row.getAttribute("vt") || "",
+    }));
+
+    setSavedReports(stats);
+
+    return { header: tripsDataHeader, rows: tripsData, stats: stats };
+  }
+
+  function extractAndParseJSONPayload(rawText) {
+    const jsonStart = rawText.indexOf("[");
+    if (jsonStart === -1) {
+      throw new Error("В ответе не найден JSON");
+    }
+
+    const jsonText = rawText.slice(jsonStart);
+
+    try {
+      const data = JSON.parse(jsonText);
+      return data;
+    } catch (err) {
+      throw new Error("Ошибка парсинга JSON: " + err.message);
+    }
+  }
+
+  const handleGenerateReport = async () => {
+    if (!selectedCarId || !startDate || !endDate || !selectedVehicleId) return;
 
     setIsGenerating(true);
     setReport(null);
-    setDetailedReport(null);
 
-    setTimeout(() => {
-      if (selectedReportType === "detailed") {
-        const generated = generateDetailedReport(
-          selectedVehicleId,
-          startDate,
-          endDate
-        );
-        setDetailedReport(generated);
-      } else {
-        const generatedReport = generateMileageReport(
-          selectedVehicleId,
-          startDate,
-          endDate
-        );
-        setReport(generatedReport);
-      }
+    try {
+      const response = await fetch(`https://gps-it.ru/proxy.php`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded",
+        },
+        body: new URLSearchParams({
+          a: "report",
+          sid: sid,
+          srv: `${s}`,
+          uid: selectedCarId,
+          aid: aid,
+          rid: selectedVehicleId,
+          from: startDate,
+          to: endDate,
+        }),
+      });
+
+      const responseMap = await fetch(`https://gps-it.ru/proxy.php`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded",
+        },
+        body: new URLSearchParams({
+          a: "messages",
+          sid: sid,
+          srv: `${s}`,
+          uid: selectedCarId,
+          from: startDate,
+          to: endDate,
+        }),
+      });
+
+      const rawText = await response.text();
+      const mapText = await responseMap.text();
+
+      const tripsData = extractAndParseXML(rawText, "unit_trips");
+      const mapData = extractAndParseJSONPayload(mapText, "unit_trips");
+
+      setReport(tripsData);
+      setMapCord(mapData);
+    } catch (error) {
+      console.error("Ошибка при генерации отчёта:", error);
+    } finally {
       setIsGenerating(false);
-    }, 1500);
-  };
-
-  const handleSaveReport = () => {
-    if (report) {
-      setSavedReports((prev) => [report, ...prev]);
-    } else if (detailedReport) {
-      setSavedReports((prev) => [detailedReport, ...prev]);
     }
   };
+  console.log(report);
+  console.log(mapCord);
 
-  const formatDate = (dateString) => {
-    return new Date(dateString).toLocaleDateString("ru-RU");
-  };
+  console.log(savedReports);
 
   return (
     <div className="container mx-auto max-w-md p-4 pb-24">
@@ -99,28 +221,59 @@ export const ReportsPage = () => {
           <Select
             label="Транспортное средство"
             placeholder="Выберите транспортное средство"
-            selectedKeys={selectedVehicleId ? [selectedVehicleId] : []}
-            onChange={(e) => setSelectedVehicleId(e.target.value)}
+            selectedKeys={selectedCarId ? [selectedCarId] : []}
+            onChange={(e) => setSelectedCarId(e.target.value)}
           >
-            {mockVehicles.map((vehicle) => (
+            {carlistType?.map((vehicle) => (
               <SelectItem key={vehicle.id} value={vehicle.id}>
-                {vehicle.name}
+                {vehicle.nm}
+              </SelectItem>
+            ))}
+          </Select>
+          <Select
+            label="Вид отчета"
+            placeholder="Выберите отчет"
+            selectedKeys={selectedVehicleId ? [selectedVehicleId] : []}
+            onChange={(e) => {
+              const selectedR = parseInt(e.target.value);
+              const selectedObj = listType.find((item) => item.r === selectedR);
+
+              setSelectedVehicleId(e.target.value);
+              console.log(e.target.value);
+              console.log(selectedObj);
+              setAid(selectedObj.a);
+            }}
+          >
+            {listType?.map((vehicle) => (
+              <SelectItem key={vehicle.r} value={vehicle.r}>
+                {vehicle.n}
               </SelectItem>
             ))}
           </Select>
 
           <div className="grid grid-cols-2 gap-4">
             <Input
-              type="date"
-              label="Дата начала"
-              value={startDate}
-              onChange={(e) => setStartDate(e.target.value)}
+              type="datetime-local"
+              label="Дата и время начала"
+              value={new Date(startDate * 1000).toISOString().slice(0, 16)}
+              onChange={(e) => {
+                const unix = Math.floor(
+                  new Date(e.target.value).getTime() / 1000
+                );
+                setStartDate(unix);
+              }}
             />
+
             <Input
-              type="date"
-              label="Дата окончания"
-              value={endDate}
-              onChange={(e) => setEndDate(e.target.value)}
+              type="datetime-local"
+              label="Дата и время окончания"
+              value={new Date(endDate * 1000).toISOString().slice(0, 16)}
+              onChange={(e) => {
+                const unix = Math.floor(
+                  new Date(e.target.value).getTime() / 1000
+                );
+                setEndDate(unix);
+              }}
             />
           </div>
 
@@ -129,7 +282,7 @@ export const ReportsPage = () => {
             className="w-full"
             onPress={handleGenerateReport}
             isLoading={isGenerating}
-            isDisabled={!selectedVehicleId || !startDate || !endDate}
+            isDisabled={!selectedCarId || !selectedVehicleId || !endDate}
             startContent={
               !isGenerating && <Icon icon="lucide:file-bar-chart" />
             }
@@ -146,77 +299,37 @@ export const ReportsPage = () => {
             <p className="text-default-500">Формирование отчёта...</p>
           </CardBody>
         </Card>
-      ) : detailedReport ? (
-        <DetailedReportTable
-          vehicleName={detailedReport.vehicleInfo.name}
-          licensePlate={detailedReport.vehicleInfo.licensePlate}
-          model={detailedReport.vehicleInfo.model}
-          startDate={detailedReport.startDate}
-          endDate={detailedReport.endDate}
-          trips={detailedReport.trips}
-        />
       ) : report ? (
-        <Card className="mt-4">
-          <CardHeader className="flex flex-col gap-1">
-            <div className="flex justify-between items-center">
-              <h2 className="text-lg font-medium">Результаты отчёта</h2>
-              <Button
-                size="sm"
-                color="primary"
-                variant="flat"
-                onPress={handleSaveReport}
-                startContent={<Icon icon="lucide:save" width={16} />}
-              >
-                Сохранить
-              </Button>
-            </div>
-            <p className="text-default-500 text-sm">
-              {formatDate(report.startDate)} - {formatDate(report.endDate)}
-            </p>
-          </CardHeader>
-          <CardBody>
-            {report.type === "mileage" && (
-              <div className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <Card>
-                    <CardBody className="text-center p-4">
-                      <p className="text-default-500 text-sm">Общий пробег</p>
-                      <p className="text-2xl font-semibold">
-                        {report.data.totalMileage} км
-                      </p>
-                    </CardBody>
-                  </Card>
-                  <Card>
-                    <CardBody className="text-center p-4">
-                      <p className="text-default-500 text-sm">Средний в день</p>
-                      <p className="text-2xl font-semibold">
-                        {report.data.dailyAverage} км
-                      </p>
-                    </CardBody>
-                  </Card>
-                </div>
+        <>
+          <div className="mt-3 mb-3 rounded-xl overflow-hidden">
+            <VehicleMapReport path={mapCord} />
+          </div>
 
-                <div>
-                  <h3 className="text-md font-medium mb-2">
-                    Детализация по дням
-                  </h3>
-                  <div className="space-y-2 max-h-64 overflow-y-auto">
-                    {report.data.details.map((detail, index) => (
-                      <div
-                        key={index}
-                        className="flex justify-between items-center p-2 bg-content2 rounded-medium"
-                      >
-                        <span>{formatDate(detail.date)}</span>
-                        <span className="font-medium">{detail.mileage} км</span>
-                      </div>
-                    ))}
-                  </div>
+          {report.stats.length > 0 && (
+            <Card>
+              <CardBody className="p-5">
+                <CardHeader className="p-0 pb-5">
+                  <h4>Статистика</h4>
+                </CardHeader>
+                <div className="space-y-2">
+                  {report?.stats.map((item, index) => (
+                    <div
+                      key={index}
+                      className="flex justify-between border-b pb-1 text-sm text-gray-700"
+                    >
+                      <span className="font-medium">{item.name}</span>
+                      <span>{item.txt}</span>
+                    </div>
+                  ))}
                 </div>
-              </div>
-            )}
-          </CardBody>
-        </Card>
-      ) : null}
+              </CardBody>
+            </Card>
+          )}
+          <DetailedReportTable trips={report} />
+        </>
+      ) : (
+        <p className="mt-4">Не найдено</p>
+      )}
     </div>
   );
 };

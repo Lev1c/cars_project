@@ -10,6 +10,7 @@ import {
   Tooltip,
   Tabs,
   Tab,
+  Alert,
 } from "@heroui/react";
 import { Icon } from "@iconify/react";
 import { getVehicleById } from "../data/mock-data.ts";
@@ -25,7 +26,7 @@ export const VehicleDetailPage = () => {
   const [vehicle, setVehicle] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isGeneratingReport, setIsGeneratingReport] = useState(false);
-  const [activeTab, setActiveTab] = useState("info");
+  const [alertBool, setAlertBool] = useState(false);
 
   const { IdCar } = useAuth();
 
@@ -56,12 +57,16 @@ export const VehicleDetailPage = () => {
     }, 800);
   };
 
-  const formatLastUpdated = (dateString) => {
-    const date = new Date(dateString);
+  const formatLastUpdated = (timestamp) => {
+    if (!timestamp) return "Неизвестно";
+
+    const date = new Date(timestamp * 1000); // Преобразуем в миллисекунды
+
+    if (isNaN(date.getTime())) return "Неверная дата";
+
     return new Intl.DateTimeFormat("ru-RU", {
       day: "2-digit",
       month: "2-digit",
-      year: "numeric",
       hour: "2-digit",
       minute: "2-digit",
     }).format(date);
@@ -102,84 +107,152 @@ export const VehicleDetailPage = () => {
     );
   }
 
+  const getTimeStatus = (timestamp) => {
+    const now = Date.now() / 1000;
+    const diffHours = (now - timestamp) / 3600;
+
+    if (diffHours <= 6) return "green-time";
+    if (diffHours <= 12) return "yellow-time";
+    return "red-time";
+  };
+
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(vehicle.pos.x, vehicle.pos.y);
+      setAlertBool(true);
+      setTimeout(() => {
+        setAlertBool(false);
+      }, 3000);
+    } catch (err) {
+      console.log(err);
+    }
+  };
+
   const parameters = [
     { name: "Гос. номер", value: vehicle.nm },
-    { name: "Модель", value: vehicle.model },
-    { name: "Статус", value: <VehicleStatusBadge status={vehicle.status} /> },
-    // { name: "Уровень топлива", value: vehicle.parameters.fuelLevel, unit: "%" },
-    // { name: "Пробег", value: vehicle.parameters.mileage, unit: "км" },
-    // {
-    //   name: "Температура двигателя",
-    //   value: vehicle.parameters.engineTemp,
-    //   unit: "°C",
-    // },
-    // {
-    //   name: "Заряд батареи",
-    //   value: vehicle.parameters.batteryLevel,
-    //   unit: "%",
-    // },
-    // { name: "Скорость", value: vehicle.parameters.speed, unit: "км/ч" },
-    // {
-    //   name: "Последнее обновление",
-    //   value: formatLastUpdated(vehicle.lastUpdated),
-    // },
+    {
+      name: "Координаты",
+      value: (
+        <p className="whitespace-nowrap flex justify-center">
+          {vehicle.pos.x}, {vehicle.pos.y}
+          <button onClick={handleCopy} className="ml-2 ">
+            <Icon icon="lucide:file-text" width={16} />
+          </button>
+        </p>
+      ),
+    },
+    { name: "Тип", value: vehicle.hw },
+    { name: "Симкарта", value: vehicle.ph },
+    {
+      name: "Дата/время",
+      value: (
+        <VehicleStatusBadge
+          txt={formatLastUpdated(vehicle.pos.t)}
+          status={getTimeStatus(vehicle.pos.t)}
+        />
+      ),
+    },
+    {
+      name: "Спутники",
+      value: vehicle.pos.sc,
+    },
   ];
 
+  if (vehicle.pos.p) {
+    Object.entries(vehicle.pos.p).forEach(([key, value]) => {
+      parameters.push({ name: key, value });
+    });
+  }
+
+  if (vehicle.sens && vehicle.pos.p) {
+    Object.values(vehicle.sens).forEach((sensor) => {
+      console.log(sensor);
+      if (sensor.tp === "fuel level" && sensor.tbl && sensor.pn) {
+        const rawValue = vehicle.pos.p?.[sensor.pn];
+
+        if (typeof rawValue !== "number") {
+          parameters.push({
+            name: `Уровень топлива (${sensor.nm})`,
+            value: "Нет данных",
+          });
+          return;
+        }
+
+        let matched = null;
+        for (let i = 0; i < sensor.tbl.length; i++) {
+          const [threshold, coeff] = sensor.tbl[i];
+          if (rawValue < threshold) {
+            matched = { threshold, coeff };
+            break;
+          }
+        }
+
+        if (matched) {
+          const fuel = Math.round(rawValue * matched.coeff);
+          parameters.push({
+            name: `Уровень топлива (${sensor.nm})`,
+            value: `${fuel} литров`,
+          });
+        } else {
+          parameters.push({
+            name: `Уровень топлива (${sensor.nm})`,
+            value: "Не удалось рассчитать",
+          });
+        }
+      }
+    });
+  }
+
   return (
-    <div className="container mx-auto max-w-md p-4 pb-24">
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-2">
-          <h1 className="text-xl font-semibold">{vehicle.nm}</h1>
-          <Badge
-            color={
-              vehicle.status === "active"
-                ? "success"
-                : vehicle.status === "maintenance"
-                ? "warning"
-                : "default"
-            }
-            variant="flat"
-            size="sm"
+    <>
+      <div className="container mx-auto max-w-md p-4 pb-24">
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-2">
+            <h1 className="text-xl font-semibold">{vehicle.nm}</h1>
+          </div>
+          <Button
+            isIconOnly
+            variant="light"
+            onPress={() => navigate("/list")}
+            aria-label="Назад"
           >
-            {vehicle.status === "active"
-              ? "Активен"
-              : vehicle.status === "maintenance"
-              ? "Обслуживание"
-              : "Неактивен"}
-          </Badge>
+            <Icon icon="lucide:arrow-left" width={20} />
+          </Button>
         </div>
-        <Button
-          isIconOnly
-          variant="light"
-          onPress={() => navigate("/list")}
-          aria-label="Назад"
-        >
-          <Icon icon="lucide:arrow-left" width={20} />
-        </Button>
+
+        {vehicle.pos && <VehicleMap pos={vehicle.pos} />}
+
+        <Card className="mt-2">
+          <CardHeader className="pb-0">
+            <h2 className="text-lg font-medium">Параметры</h2>
+          </CardHeader>
+          <CardBody>
+            <ParameterTable parameters={parameters} />
+          </CardBody>
+        </Card>
+
+        <div className="flex gap-2 mt-4">
+          <Button
+            color="primary"
+            className="flex-grow"
+            onPress={handleGenerateReport}
+            isLoading={isGeneratingReport}
+            startContent={
+              !isGeneratingReport && <Icon icon="lucide:file-text" />
+            }
+          >
+            Сформировать отчёт
+          </Button>
+        </div>
       </div>
-
-      {vehicle.pos && <VehicleMap pos={vehicle.pos} />}
-
-      <Card className="mt-2">
-        <CardHeader className="pb-0">
-          <h2 className="text-lg font-medium">Параметры</h2>
-        </CardHeader>
-        <CardBody>
-          <ParameterTable parameters={parameters} />
-        </CardBody>
-      </Card>
-
-      <div className="flex gap-2 mt-4">
-        <Button
-          color="primary"
-          className="flex-grow"
-          onPress={handleGenerateReport}
-          isLoading={isGeneratingReport}
-          startContent={!isGeneratingReport && <Icon icon="lucide:file-text" />}
+      {alertBool && (
+        <div
+          key={"success"}
+          className="w-[350px] flex items-center my-3 absolute top-0 right-3"
         >
-          Сформировать отчёт
-        </Button>
-      </div>
-    </div>
+          <Alert color={"success"} title={`Координаты успешно скопированы`} />
+        </div>
+      )}
+    </>
   );
 };

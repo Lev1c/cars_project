@@ -3,7 +3,7 @@ import { YMaps, Map, Placemark } from "@pbe/react-yandex-maps";
 
 export const VehicleMap = ({ pos }) => {
   const defaultState = {
-    center: [pos.y, pos.x], // широта, долгота
+    center: [pos.y, pos.x],
     zoom: 15,
   };
 

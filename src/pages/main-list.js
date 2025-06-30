@@ -1,29 +1,23 @@
 import React, { useState, useEffect, useCallback } from "react";
-import { Navigate, useNavigate } from "react-router-dom";
-import { Card, CardBody, Input, Spinner, Badge } from "@heroui/react";
-import { Icon } from "@iconify/react";
-import { mockVehicles } from "../data/mock-data.ts";
+import { useNavigate } from "react-router-dom";
+
 import { VehicleStatusBadge } from "../components/vehicle-status-badge";
 import { useAuth } from "../context/auth-context.js";
 
-export const Main = () => {
-  const [vehicles, setVehicles] = useState([]);
-  const [filteredVehicles, setFilteredVehicles] = useState([]);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [isLoading, setIsLoading] = useState(true);
-  const [sortBy, setSortBy] = useState("name");
-  const [filterStatus, setFilterStatus] = useState("all");
+import { Card, CardBody, Input, Spinner } from "@heroui/react";
+import { Icon } from "@iconify/react";
 
-  const { dataCar, setCar } = useAuth();
+export const Main = () => {
+  const { dataCar, setCar, load } = useAuth();
 
   const navigate = useNavigate();
 
-  const sortAndFilterVehicles = useCallback(() => {
-    let result = [...vehicles];
+  const [filteredVehicles, setFilteredVehicles] = useState([]);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [isLoading, setIsLoading] = useState(true);
 
-    if (filterStatus !== "all") {
-      result = result.filter((vehicle) => vehicle.status === filterStatus);
-    }
+  const sortAndFilterVehicles = useCallback(() => {
+    let result = [...dataCar.items];
 
     if (searchQuery) {
       result = dataCar.items.filter((vehicle) =>
@@ -32,13 +26,14 @@ export const Main = () => {
     }
 
     setFilteredVehicles(result);
-  }, [vehicles, searchQuery, sortBy, filterStatus]);
+  }, [searchQuery]);
+
+  console.log(load);
 
   useEffect(() => {
     const fetchVehicles = async () => {
       try {
         await new Promise((resolve) => setTimeout(resolve, 800));
-        setVehicles(dataCar.items);
         setFilteredVehicles(dataCar.items);
       } finally {
         setIsLoading(false);
@@ -50,7 +45,7 @@ export const Main = () => {
 
   useEffect(() => {
     sortAndFilterVehicles();
-  }, [searchQuery, vehicles, sortBy, filterStatus, sortAndFilterVehicles]);
+  }, [searchQuery, sortAndFilterVehicles]);
 
   const handleVehicleClick = (vehicleId) => {
     setCar(vehicleId);
@@ -60,7 +55,7 @@ export const Main = () => {
   const formatLastUpdated = (timestamp) => {
     if (!timestamp) return "Неизвестно";
 
-    const date = new Date(timestamp * 1000); // Преобразуем в миллисекунды
+    const date = new Date(timestamp * 1000);
 
     if (isNaN(date.getTime())) return "Неверная дата";
 
@@ -114,7 +109,17 @@ export const Main = () => {
       ) : (
         <div className="space-y-3">
           {filteredVehicles.map((vehicle) => {
-            console.log(vehicle);
+            const getTimeStatus = (timestamp) => {
+              const now = Date.now() / 1000;
+              const diffHours = (now - timestamp) / 3600;
+
+              if (diffHours <= 6) return "green";
+              if (diffHours <= 12) return "yellow";
+              return "red";
+            };
+
+            const timeStatus = getTimeStatus(vehicle.pos.t);
+
             return (
               <Card
                 key={vehicle.id}
@@ -124,17 +129,22 @@ export const Main = () => {
               >
                 <CardBody className="p-3">
                   <div className="flex justify-between items-start">
-                    <div>
+                    <div className="flex justify-between flex-col gap-1">
                       <h3 className="font-medium">{vehicle.nm}</h3>
 
-                      <p className="text-default-400 text-xs mt-1">
+                      <p className="text-default-400 text-sm mt-1">
                         Обновлено: {formatLastUpdated(vehicle.pos.t)}
                       </p>
                     </div>
                     <div className="flex flex-col items-end gap-2">
-                      <VehicleStatusBadge status={vehicle.status} />
-                      <div className="flex items-center text-default-500 text-xs">
-                        <Icon icon="lucide:fuel" className="mr-1" width={14} />
+                      <VehicleStatusBadge status={timeStatus} />
+                      <div className="flex items-center text-default-500 text-sm  gap-1">
+                        {vehicle.pos.sc}
+                        <Icon
+                          icon="hugeicons:satellite"
+                          className="mr-1"
+                          width={14}
+                        />
                       </div>
                     </div>
                   </div>

@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 
 const SERVERS = ["gps.itqt.ru", "gps2.itqt.ru", "gps3.itqt.ru", "trns63.ru"];
 const PORT = 8025;
@@ -16,32 +17,85 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [server, setServer] = useState(null);
   const [dataCar, setDataCar] = useState();
-
   const [IdCar, setIdCar] = useState();
+  const [reportList, setReportList] = useState();
+  const [load, setLoad] = useState(false);
+  const navigate = useNavigate();
 
-  const login = async (username, password) => {
-    for (let s of SERVERS) {
+  const login = async (username, password, specificServer = null) => {
+    const serversToTry = specificServer ? [specificServer] : SERVERS;
+
+    for (let s of serversToTry) {
       try {
-        const res = await fetch(
-          `http://${s}:${PORT}/?a=login&u=${username}&p=${password}`
-        );
-        const data = await res.json();
-        console.log(data);
+        const res = await fetch(`https://gps-it.ru/proxy.php`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/x-www-form-urlencoded",
+          },
+          body: new URLSearchParams({
+            a: "login",
+            u: username,
+            p: password,
+            srv: `${s}`,
+          }),
+        });
+
+        const text = await res.text();
+
+        const sidMatch = text.match(/Set-Cookie:\s*sid=([^;]+);/i);
+        if (sidMatch) {
+          const sid = sidMatch[1];
+          localStorage.setItem("sid", sid);
+          console.log("SID сохранён в localStorage:", sid);
+        } else {
+          console.warn("SID не найден в ответе");
+        }
+
+        const jsonStartIndex = text.indexOf("\r\n\r\n");
+
+        if (jsonStartIndex === -1) {
+          console.warn(
+            `Разделитель заголовков и тела не найден на сервере ${s}, пробуем следующий.`
+          );
+          continue;
+        }
+
+        const jsonText = text.substring(jsonStartIndex + 4);
+
+        let data;
+        try {
+          data = JSON.parse(jsonText);
+        } catch (parseError) {
+          console.warn(`Ошибка парсинга JSON с сервера ${s}:`, parseError);
+          continue;
+        }
+
+        console.log(`Ответ сервера ${s}:`, data);
+
+        setReportList(data.reports);
+        setDataCar(data);
+
         if (data.code !== "ERROR") {
           setIsAuthenticated(true);
           setUser(username);
           setServer(s);
-          setDataCar(data);
+          navigate("/list");
+          setLoad(true);
+
           localStorage.setItem("isAuthenticated", "true");
           localStorage.setItem("username", username);
           localStorage.setItem("password", password);
           localStorage.setItem("server", s);
+
           return true;
         }
+
+        console.warn(`Сервер ${s} вернул ошибку:`, data);
       } catch (e) {
-        console.warn(`Ошибка при запросе к серверу ${s}`, e);
+        console.warn(`Ошибка при запросе к серверу ${s}:`, e);
       }
     }
+
     setIsAuthenticated(false);
     return false;
   };
@@ -50,15 +104,41 @@ export const AuthProvider = ({ children }) => {
     setIsAuthenticated(false);
     setUser(null);
     setServer(null);
+    setDataCar(null);
+    setIdCar(null);
     localStorage.removeItem("isAuthenticated");
     localStorage.removeItem("username");
     localStorage.removeItem("password");
     localStorage.removeItem("server");
+    localStorage.removeItem("sid");
   };
 
   const setCar = (data) => {
     setIdCar(data);
   };
+
+  // Автоматический логин при монтировании
+  useEffect(() => {
+    const tryAutoLogin = async () => {
+      const isAuth = localStorage.getItem("isAuthenticated");
+      const username = localStorage.getItem("username");
+      const password = localStorage.getItem("password");
+      const server = localStorage.getItem("server");
+
+      if (username && password && server) {
+        const success = await login(username, password, server);
+        if (!success) {
+          // Очистим данные если автологин не удался
+          logout();
+        }
+      }
+      if (!username || !password || !server) {
+        logout();
+      }
+    };
+
+    tryAutoLogin();
+  }, []);
 
   return (
     <AuthContext.Provider
@@ -71,6 +151,8 @@ export const AuthProvider = ({ children }) => {
         logout,
         setCar,
         IdCar,
+        reportList,
+        load,
       }}
     >
       {children}

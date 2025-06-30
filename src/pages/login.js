@@ -7,6 +7,7 @@ import {
   Input,
   Button,
   Divider,
+  Spinner,
 } from "@heroui/react";
 import { Icon } from "@iconify/react";
 import { useAuth } from "../context/auth-context";
@@ -18,6 +19,7 @@ export const LoginPage = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
   const { login } = useAuth();
+  const [isAutoLoggingIn, setIsAutoLoggingIn] = useState(true);
 
   const navigate = useNavigate();
 
@@ -40,69 +42,85 @@ export const LoginPage = () => {
     }
   };
 
+  const usernames = localStorage.getItem("username");
+  const passwords = localStorage.getItem("password");
+
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
     const u = urlParams.get("u");
     const p = urlParams.get("p");
     setUsername(u);
     setPassword(p);
-  }, []);
 
-  return (
-    <div className="min-h-screen flex items-center justify-center p-4 bg-background">
-      <Card className="w-full max-w-md">
-        <CardHeader className="flex flex-col items-center gap-2 pb-0">
-          <div className="flex items-center justify-center w-12 h-12 bg-primary rounded-full">
-            <Icon icon="lucide:car" width={24} className="text-white" />
-          </div>
-          <h1 className="text-xl font-semibold">
-            Система мониторинга транспорта
-          </h1>
-          <p className="text-default-500 text-center text-sm">
-            Войдите, чтобы получить доступ к мониторингу вашего автопарка
-          </p>
-        </CardHeader>
-        <CardBody>
-          <form onSubmit={handleLogin} className="space-y-4">
-            <Input
-              label="Имя пользователя"
-              placeholder="Введите имя пользователя"
-              value={username}
-              onValueChange={setUsername}
-              startContent={
-                <Icon icon="lucide:user" className="text-default-400" />
-              }
-            />
-            <Input
-              label="Пароль"
-              placeholder="Введите пароль"
-              type="password"
-              value={password}
-              onValueChange={setPassword}
-              startContent={
-                <Icon icon="lucide:lock" className="text-default-400" />
-              }
-            />
+    if (usernames) {
+      setIsAutoLoggingIn(true);
+    } else {
+      setIsAutoLoggingIn(false);
+    }
+  }, [usernames]);
 
-            {error && <p className="text-danger text-sm">{error}</p>}
-
-            <Button
-              type="submit"
-              color="primary"
-              className="w-full"
-              isLoading={isLoading}
-            >
-              Войти
-            </Button>
-
-            <Divider className="my-4" />
-
-            <p className="text-center text-default-500 text-xs">
-              © 2025 Все права защищены.
+  if (isAutoLoggingIn === false) {
+    return (
+      <div className="min-h-screen flex items-center justify-center p-4 bg-background">
+        <Card className="w-full max-w-md">
+          <CardHeader className="flex flex-col items-center gap-2 pb-0">
+            <div className="flex items-center justify-center w-12 h-12 bg-primary rounded-full">
+              <Icon icon="lucide:car" width={24} className="text-white" />
+            </div>
+            <h1 className="text-xl font-semibold">
+              Система мониторинга транспорта
+            </h1>
+            <p className="text-default-500 text-center text-sm">
+              Войдите, чтобы получить доступ к мониторингу вашего автопарка
             </p>
-          </form>
-        </CardBody>
-      </Card>
+          </CardHeader>
+          <CardBody>
+            <form onSubmit={handleLogin} className="space-y-4">
+              <Input
+                label="Имя пользователя"
+                placeholder="Введите имя пользователя"
+                value={username}
+                onValueChange={setUsername}
+                startContent={
+                  <Icon icon="lucide:user" className="text-default-400" />
+                }
+              />
+              <Input
+                label="Пароль"
+                placeholder="Введите пароль"
+                type="password"
+                value={password}
+                onValueChange={setPassword}
+                startContent={
+                  <Icon icon="lucide:lock" className="text-default-400" />
+                }
+              />
+
+              {error && <p className="text-danger text-sm">{error}</p>}
+
+              <Button
+                type="submit"
+                color="primary"
+                className="w-full"
+                isLoading={isLoading}
+              >
+                Войти
+              </Button>
+
+              <Divider className="my-4" />
+
+              <p className="text-center text-default-500 text-xs">
+                © 2025 Все права защищены.
+              </p>
+            </form>
+          </CardBody>
+        </Card>
+      </div>
+    );
+  }
+  return (
+    <div className="flex justify-center items-center h-64">
+      <Spinner size="lg" />
     </div>
   );
 };
