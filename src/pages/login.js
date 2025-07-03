@@ -43,7 +43,6 @@ export const LoginPage = () => {
   };
 
   const usernames = localStorage.getItem("username");
-  const passwords = localStorage.getItem("password");
 
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);

@@ -124,7 +124,7 @@ export const VehicleDetailPage = () => {
     {
       name: "Координаты",
       value: (
-        <p className="whitespace-nowrap flex justify-center">
+        <p className="whitespace-nowrap flex">
           {vehicle.pos.x}, {vehicle.pos.y}
           <button onClick={handleCopy} className="ml-2 ">
             <Icon icon="lucide:file-text" width={16} />
