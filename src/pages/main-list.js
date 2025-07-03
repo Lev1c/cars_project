@@ -8,7 +8,7 @@ import { Card, CardBody, Input, Spinner } from "@heroui/react";
 import { Icon } from "@iconify/react";
 
 export const Main = () => {
-  const { dataCar, setCar, load } = useAuth();
+  const { dataCar, setCar } = useAuth();
 
   const navigate = useNavigate();
 
@@ -26,9 +26,8 @@ export const Main = () => {
     }
 
     setFilteredVehicles(result);
+    // eslint-disable-next-line
   }, [searchQuery]);
-
-  console.log(load);
 
   useEffect(() => {
     const fetchVehicles = async () => {
@@ -41,6 +40,7 @@ export const Main = () => {
     };
 
     fetchVehicles();
+    // eslint-disable-next-line
   }, []);
 
   useEffect(() => {
@@ -66,9 +66,6 @@ export const Main = () => {
       minute: "2-digit",
     }).format(date);
   };
-
-  console.log(dataCar.items);
-  console.log(filteredVehicles);
 
   return (
     <div className="container mx-auto max-w-md p-4 pb-24">

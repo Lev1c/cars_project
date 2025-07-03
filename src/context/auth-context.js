@@ -2,7 +2,6 @@ import React, { createContext, useContext, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 const SERVERS = ["gps.itqt.ru", "gps2.itqt.ru", "gps3.itqt.ru", "trns63.ru"];
-const PORT = 8025;
 
 const AuthContext = createContext({
   isAuthenticated: false,
@@ -46,9 +45,7 @@ export const AuthProvider = ({ children }) => {
         if (sidMatch) {
           const sid = sidMatch[1];
           localStorage.setItem("sid", sid);
-          console.log("SID сохранён в localStorage:", sid);
         } else {
-          console.warn("SID не найден в ответе");
         }
 
         const jsonStartIndex = text.indexOf("\r\n\r\n");
@@ -69,8 +66,6 @@ export const AuthProvider = ({ children }) => {
           console.warn(`Ошибка парсинга JSON с сервера ${s}:`, parseError);
           continue;
         }
-
-        console.log(`Ответ сервера ${s}:`, data);
 
         setReportList(data.reports);
         setDataCar(data);
@@ -120,7 +115,6 @@ export const AuthProvider = ({ children }) => {
   // Автоматический логин при монтировании
   useEffect(() => {
     const tryAutoLogin = async () => {
-      const isAuth = localStorage.getItem("isAuthenticated");
       const username = localStorage.getItem("username");
       const password = localStorage.getItem("password");
       const server = localStorage.getItem("server");
@@ -138,6 +132,7 @@ export const AuthProvider = ({ children }) => {
     };
 
     tryAutoLogin();
+    // eslint-disable-next-line
   }, []);
 
   return (

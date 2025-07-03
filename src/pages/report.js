@@ -9,8 +9,6 @@ import {
   Button,
   Spinner,
   Input,
-  Tabs,
-  Tab,
 } from "@heroui/react";
 import { Icon } from "@iconify/react";
 
@@ -19,18 +17,27 @@ import { useAuth } from "../context/auth-context.js";
 import { VehicleMapReport } from "../components/vehicle-map-report.js";
 
 export const ReportsPage = () => {
-  const { reportList, dataCar } = useAuth();
+  const { reportList, dataCar, IdCar } = useAuth();
+
+  const location = useLocation();
 
   const [listType, setListType] = useState();
   const [carlistType, setCarListType] = useState();
   const [selectedCarId, setSelectedCarId] = useState();
   const [selectedVehicleId, setSelectedVehicleId] = useState();
   const [aid, setAid] = useState();
+  const [isLoading, setIsLoading] = useState(true);
   const [mapCord, setMapCord] = useState();
+
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [report, setReport] = useState(null);
+
+  const sid = localStorage.getItem("sid");
+  const s = localStorage.getItem("server");
 
   const [startDate, setStartDate] = useState(() => {
     const now = new Date();
-    const timestamp = Date.UTC(
+    const localDate = new Date(
       now.getFullYear(),
       now.getMonth(),
       now.getDate(),
@@ -38,12 +45,12 @@ export const ReportsPage = () => {
       0,
       0
     );
-    return Math.floor(timestamp / 1000);
+    return Math.floor(localDate.getTime() / 1000);
   });
 
   const [endDate, setEndDate] = useState(() => {
     const now = new Date();
-    const timestamp = Date.UTC(
+    const localDate = new Date(
       now.getFullYear(),
       now.getMonth(),
       now.getDate(),
@@ -51,8 +58,17 @@ export const ReportsPage = () => {
       59,
       59
     );
-    return Math.floor(timestamp / 1000);
+    return Math.floor(localDate.getTime() / 1000);
   });
+
+  useEffect(() => {
+    if (location.state?.selectedVehicleId) {
+      setSelectedVehicleId("1");
+      setAid(reportList[0]?.a);
+      setSelectedCarId(String(IdCar.id));
+    }
+    // eslint-disable-next-line
+  }, [location.state]);
 
   useEffect(() => {
     const fetchVehicle = async () => {
@@ -63,21 +79,14 @@ export const ReportsPage = () => {
         setCarListType(dataCar.items);
       } catch (e) {
         console.log(e);
+      } finally {
+        setIsLoading(false);
       }
     };
 
     fetchVehicle();
+    // eslint-disable-next-line
   }, []);
-
-  const [isGenerating, setIsGenerating] = useState(false);
-  const [report, setReport] = useState(null);
-
-  const [savedReports, setSavedReports] = useState();
-
-  const sid = localStorage.getItem("sid");
-  const s = localStorage.getItem("server");
-
-  console.log(dataCar);
 
   function extractAndParseXML(rawText, tableId = "unit_trips") {
     const xmlStart = rawText.indexOf("<");
@@ -129,8 +138,6 @@ export const ReportsPage = () => {
       val: row.getAttribute("val") || "",
       vt: row.getAttribute("vt") || "",
     }));
-
-    setSavedReports(stats);
 
     return { header: tripsDataHeader, rows: tripsData, stats: stats };
   }
@@ -204,10 +211,24 @@ export const ReportsPage = () => {
       setIsGenerating(false);
     }
   };
-  console.log(report);
-  console.log(mapCord);
 
-  console.log(savedReports);
+  const formatLocalDateTime = (date) => {
+    const pad = (num) => String(num).padStart(2, "0");
+    const year = date.getFullYear();
+    const month = pad(date.getMonth() + 1);
+    const day = pad(date.getDate());
+    const hours = pad(date.getHours());
+    const minutes = pad(date.getMinutes());
+    return `${year}-${month}-${day}T${hours}:${minutes}`;
+  };
+
+  if (isLoading) {
+    return (
+      <div className="container mx-auto max-w-md p-4 flex justify-center items-center h-screen">
+        <Spinner size="lg" />
+      </div>
+    );
+  }
 
   return (
     <div className="container mx-auto max-w-md p-4 pb-24">
@@ -239,8 +260,7 @@ export const ReportsPage = () => {
               const selectedObj = listType.find((item) => item.r === selectedR);
 
               setSelectedVehicleId(e.target.value);
-              console.log(e.target.value);
-              console.log(selectedObj);
+
               setAid(selectedObj.a);
             }}
           >
@@ -255,7 +275,7 @@ export const ReportsPage = () => {
             <Input
               type="datetime-local"
               label="Дата и время начала"
-              value={new Date(startDate * 1000).toISOString().slice(0, 16)}
+              value={formatLocalDateTime(new Date(startDate * 1000))}
               onChange={(e) => {
                 const unix = Math.floor(
                   new Date(e.target.value).getTime() / 1000
@@ -267,7 +287,7 @@ export const ReportsPage = () => {
             <Input
               type="datetime-local"
               label="Дата и время окончания"
-              value={new Date(endDate * 1000).toISOString().slice(0, 16)}
+              value={formatLocalDateTime(new Date(endDate * 1000))}
               onChange={(e) => {
                 const unix = Math.floor(
                   new Date(e.target.value).getTime() / 1000

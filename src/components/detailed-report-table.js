@@ -16,7 +16,6 @@ import {
 export const DetailedReportTable = ({ trips }) => {
   const [activeView, setActiveView] = useState("table");
 
-  console.log(trips);
   return (
     <Card className="mt-4">
       <CardBody>

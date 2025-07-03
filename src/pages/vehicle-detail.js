@@ -1,19 +1,14 @@
 import React, { useState, useEffect } from "react";
-import { Navigate, useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import {
   Card,
   CardBody,
   CardHeader,
   Button,
   Spinner,
-  Badge,
-  Tooltip,
-  Tabs,
-  Tab,
   Alert,
 } from "@heroui/react";
 import { Icon } from "@iconify/react";
-import { getVehicleById } from "../data/mock-data.ts";
 import { VehicleMap } from "../components/vehicle-map";
 import { ParameterTable } from "../components/parameter-table";
 import { VehicleStatusBadge } from "../components/vehicle-status-badge";
@@ -30,8 +25,6 @@ export const VehicleDetailPage = () => {
 
   const { IdCar } = useAuth();
 
-  console.log(IdCar);
-
   useEffect(() => {
     const fetchVehicle = async () => {
       try {
@@ -44,16 +37,14 @@ export const VehicleDetailPage = () => {
     };
 
     fetchVehicle();
+    // eslint-disable-next-line
   }, [id]);
 
   const handleGenerateReport = () => {
     setIsGeneratingReport(true);
     setTimeout(() => {
       setIsGeneratingReport(false);
-      navigate({
-        pathname: "/reports",
-        state: { selectedVehicleId: id },
-      });
+      navigate("/reports", { state: { selectedVehicleId: id } });
     }, 800);
   };
 
@@ -166,7 +157,6 @@ export const VehicleDetailPage = () => {
 
   if (vehicle.sens && vehicle.pos.p) {
     Object.values(vehicle.sens).forEach((sensor) => {
-      console.log(sensor);
       if (sensor.tp === "fuel level" && sensor.tbl && sensor.pn) {
         const rawValue = vehicle.pos.p?.[sensor.pn];
 
