@@ -280,7 +280,12 @@ export const ReportsPage = () => {
           <div className="grid grid-cols-2 gap-4">
             <Input
               type="datetime-local"
-              label="Дата и время начала"
+              label={
+                <>
+                  <p className="hidden md:inline">Дата и </p>
+                  <span className="text-sm">время начала</span>
+                </>
+              }
               value={formatLocalDateTime(new Date(startDate * 1000))}
               onChange={(e) => {
                 const unix = Math.floor(
@@ -292,7 +297,12 @@ export const ReportsPage = () => {
 
             <Input
               type="datetime-local"
-              label="Дата и время окончания"
+              label={
+                <>
+                  <p className="hidden md:inline">Дата и </p>
+                  <span className="text-sm">время окончания</span>
+                </>
+              }
               value={formatLocalDateTime(new Date(endDate * 1000))}
               onChange={(e) => {
                 const unix = Math.floor(
