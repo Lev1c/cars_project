@@ -63,7 +63,6 @@ export const AuthProvider = ({ children }) => {
         try {
           data = JSON.parse(jsonText);
         } catch (parseError) {
-          console.warn(`Ошибка парсинга JSON с сервера ${s}:`, parseError);
           continue;
         }
 

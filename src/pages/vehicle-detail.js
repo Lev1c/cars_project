@@ -195,7 +195,7 @@ export const VehicleDetailPage = () => {
 
   return (
     <>
-      <div className="container mx-auto max-w-md p-4 pb-24">
+      <div className="container w-full mx-auto max-w-md p-4 pb-24">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
             <h1 className="text-xl font-semibold">{vehicle.nm}</h1>

@@ -60,7 +60,7 @@ export const LoginPage = () => {
 
   if (isAutoLoggingIn === false) {
     return (
-      <div className="min-h-screen flex items-center justify-center p-4 bg-background">
+      <div className="min-h-screen w-full flex items-center justify-center p-4 bg-background">
         <Card className="w-full max-w-md">
           <CardHeader className="flex flex-col items-center gap-2 pb-0">
             <div className="flex items-center justify-center w-12 h-12 bg-primary rounded-full">
