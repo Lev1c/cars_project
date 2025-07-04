@@ -122,13 +122,17 @@ export const VehicleDetailPage = () => {
   const parameters = [
     { name: "Гос. номер", value: vehicle.nm },
     {
-      name: "Координаты",
-      value: (
+      name: (
         <p className="whitespace-nowrap flex">
-          {vehicle.pos.x}, {vehicle.pos.y}
+          Координаты
           <button onClick={handleCopy} className="ml-2 ">
             <Icon icon="lucide:file-text" width={16} />
           </button>
+        </p>
+      ),
+      value: (
+        <p className="whitespace-nowrap flex">
+          {vehicle.pos.x}, {vehicle.pos.y}
         </p>
       ),
     },
