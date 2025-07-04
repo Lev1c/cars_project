@@ -109,7 +109,7 @@ export const VehicleDetailPage = () => {
 
   const handleCopy = async () => {
     try {
-      await navigator.clipboard.writeText(vehicle.pos.x, vehicle.pos.y);
+      await navigator.clipboard.writeText(vehicle.pos.x + "," + vehicle.pos.y);
       setAlertBool(true);
       setTimeout(() => {
         setAlertBool(false);
