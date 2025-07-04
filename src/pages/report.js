@@ -165,37 +165,43 @@ export const ReportsPage = () => {
     setReport(null);
 
     try {
-      const response = await fetch(`https://gps-it.ru/proxy.php`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/x-www-form-urlencoded",
-        },
-        body: new URLSearchParams({
-          a: "report",
-          sid: sid,
-          srv: `${s}`,
-          uid: selectedCarId,
-          aid: aid,
-          rid: selectedVehicleId,
-          from: startDate,
-          to: endDate,
-        }),
-      });
+      const response = await fetch(
+        `https://cars-project-back.onrender.com/api`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/x-www-form-urlencoded",
+          },
+          body: new URLSearchParams({
+            a: "report",
+            sid: sid,
+            srv: `${s}`,
+            uid: selectedCarId,
+            aid: aid,
+            rid: selectedVehicleId,
+            from: startDate,
+            to: endDate,
+          }),
+        }
+      );
 
-      const responseMap = await fetch(`https://gps-it.ru/proxy.php`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/x-www-form-urlencoded",
-        },
-        body: new URLSearchParams({
-          a: "messages",
-          sid: sid,
-          srv: `${s}`,
-          uid: selectedCarId,
-          from: startDate,
-          to: endDate,
-        }),
-      });
+      const responseMap = await fetch(
+        `https://cars-project-back.onrender.com/api`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/x-www-form-urlencoded",
+          },
+          body: new URLSearchParams({
+            a: "messages",
+            sid: sid,
+            srv: `${s}`,
+            uid: selectedCarId,
+            from: startDate,
+            to: endDate,
+          }),
+        }
+      );
 
       const rawText = await response.text();
       const mapText = await responseMap.text();

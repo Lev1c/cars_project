@@ -2,6 +2,7 @@
   "name": "cars_project",
   "version": "0.1.0",
   "private": true,
+  "proxy": "https://gps-it.ru",
   "dependencies": {
     "@heroui/react": "2.7.9",
     "@heroui/use-theme": "2.1.6",
@@ -9,6 +10,7 @@
     "@pbe/react-yandex-maps": "^1.2.5",
     "framer-motion": "^11.18.2",
     "leaflet": "^1.9.4",
+    "node-fetch": "^3.3.2",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-leaflet": "^4.2.1",
