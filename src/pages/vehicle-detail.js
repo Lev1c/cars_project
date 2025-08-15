@@ -109,7 +109,7 @@ export const VehicleDetailPage = () => {
 
   const handleCopy = async () => {
     try {
-      await navigator.clipboard.writeText(vehicle.pos.x + "," + vehicle.pos.y);
+      await navigator.clipboard.writeText(vehicle.pos.y + "," + vehicle.pos.x);
       setAlertBool(true);
       setTimeout(() => {
         setAlertBool(false);
@@ -132,7 +132,7 @@ export const VehicleDetailPage = () => {
       ),
       value: (
         <p className="whitespace-nowrap flex">
-          {vehicle.pos.x}, {vehicle.pos.y}
+          {vehicle.pos.y}, {vehicle.pos.x}
         </p>
       ),
     },
