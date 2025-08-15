@@ -53,7 +53,7 @@ export const DetailedReportTable = ({ trips }) => {
             </div>
           </Tab>
           <Tab key="json" title="JSON">
-            <pre className="text-sm bg-default-100 p-2 rounded">
+            <pre className="text-sm overflow-auto bg-default-100 p-2 rounded ">
               {JSON.stringify(trips, null, 2)}
             </pre>
           </Tab>

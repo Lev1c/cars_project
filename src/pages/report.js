@@ -28,6 +28,7 @@ export const ReportsPage = () => {
   const [aid, setAid] = useState();
   const [isLoading, setIsLoading] = useState(true);
   const [mapCord, setMapCord] = useState();
+  const [serchAct, setSearchAct] = useState(false)
 
   const [isGenerating, setIsGenerating] = useState(false);
   const [report, setReport] = useState(null);
@@ -118,8 +119,8 @@ export const ReportsPage = () => {
     const headerElem = tripsTable.querySelector("header");
     const tripsDataHeader = headerElem
       ? Array.from(headerElem.querySelectorAll("col")).map(
-          (col) => col.getAttribute("name") || ""
-        )
+        (col) => col.getAttribute("name") || ""
+      )
       : [];
 
     const tripsTabl = xmlDoc.querySelector(`stats`);
@@ -161,6 +162,7 @@ export const ReportsPage = () => {
   const handleGenerateReport = async () => {
     if (!selectedCarId || !startDate || !endDate || !selectedVehicleId) return;
 
+    setSearchAct(true)
     setIsGenerating(true);
     setReport(null);
 
@@ -363,7 +365,7 @@ export const ReportsPage = () => {
           )}
           <DetailedReportTable trips={report} />
         </>
-      ) : null}
+      ) : <>{serchAct && <p className="mt-5 text-default-700">Ничего не найдено</p>}</>}
     </div>
   );
 };
