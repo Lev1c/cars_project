@@ -30,6 +30,8 @@ export const ReportsPage = () => {
   const [mapCord, setMapCord] = useState();
   const [serchAct, setSearchAct] = useState(false)
 
+  console.log(reportList, dataCar, IdCar)
+
   const [isGenerating, setIsGenerating] = useState(false);
   const [report, setReport] = useState(null);
 
@@ -265,14 +267,14 @@ export const ReportsPage = () => {
             selectedKeys={selectedVehicleId ? [selectedVehicleId] : []}
             onChange={(e) => {
               const selectedR = parseInt(e.target.value);
-              const selectedObj = listType.find((item) => item.r === selectedR);
+              const selectedObj = listType.filter(item => !/групп[а-я]*/i.test(item.n)).find((item) => item.r === selectedR);
 
               setSelectedVehicleId(e.target.value);
 
               setAid(selectedObj.a);
             }}
           >
-            {listType?.map((vehicle) => (
+            {listType.filter(item => !/групп[а-я]*/i.test(item.n))?.map((vehicle) => (
               <SelectItem key={vehicle.r} value={vehicle.r}>
                 {vehicle.n}
               </SelectItem>

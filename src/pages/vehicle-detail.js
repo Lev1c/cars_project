@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import {
   Card,
@@ -22,6 +22,8 @@ export const VehicleDetailPage = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [isGeneratingReport, setIsGeneratingReport] = useState(false);
   const [alertBool, setAlertBool] = useState(false);
+
+  const [paramActive, setParamActive] = useState(false);
 
   const { IdCar } = useAuth();
 
@@ -122,6 +124,15 @@ export const VehicleDetailPage = () => {
   const parameters = [
     { name: "Гос. номер", value: vehicle.nm },
     {
+      name: "Дата/время",
+      value: (
+        <VehicleStatusBadge
+          txt={formatLastUpdated(vehicle.pos.t)}
+          status={getTimeStatus(vehicle.pos.t)}
+        />
+      ),
+    },
+    {
       name: (
         <p className="whitespace-nowrap flex">
           Координаты
@@ -136,28 +147,8 @@ export const VehicleDetailPage = () => {
         </p>
       ),
     },
-    { name: "Тип", value: vehicle.hw },
-    { name: "Симкарта", value: vehicle.ph },
-    {
-      name: "Дата/время",
-      value: (
-        <VehicleStatusBadge
-          txt={formatLastUpdated(vehicle.pos.t)}
-          status={getTimeStatus(vehicle.pos.t)}
-        />
-      ),
-    },
-    {
-      name: "Спутники",
-      value: vehicle.pos.sc,
-    },
   ];
 
-  if (vehicle.pos.p) {
-    Object.entries(vehicle.pos.p).forEach(([key, value]) => {
-      parameters.push({ name: key, value });
-    });
-  }
 
   if (vehicle.sens && vehicle.pos.p) {
     Object.values(vehicle.sens).forEach((sensor) => {
@@ -197,6 +188,27 @@ export const VehicleDetailPage = () => {
     });
   }
 
+
+  parameters.push(
+
+    {
+      name: "Спутники",
+      value: vehicle.pos.sc,
+    },
+    { name: "Тип", value: vehicle.hw },
+    { name: "Симкарта", value: vehicle.ph },
+  );
+
+  if (vehicle.pos.p && paramActive) {
+    Object.entries(vehicle.pos.p).forEach(([key, value]) => {
+      parameters.push({ name: key, value });
+    });
+  }
+
+  const clickParam = () => {
+    setParamActive(!paramActive);
+  }
+
   return (
     <>
       <div className="container w-full mx-auto max-w-md p-4 pb-24">
@@ -222,6 +234,13 @@ export const VehicleDetailPage = () => {
           </CardHeader>
           <CardBody>
             <ParameterTable parameters={parameters} />
+            <button className="text-small text-primary-400 font-medium flex items-center gap-1 ml-2 mt-3" onClick={() => clickParam()}>Дополнительные параметры
+              <Icon
+                icon="mdi:arrow-down-drop"
+                className={`${paramActive ? "rotate-180" : ""}`}
+                width={14}
+              />
+            </button>
           </CardBody>
         </Card>
 
