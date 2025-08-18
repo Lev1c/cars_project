@@ -8,7 +8,7 @@ const AuthContext = createContext({
   user: null,
   server: null,
   login: async () => false,
-  logout: () => {},
+  logout: () => { },
 });
 
 export const AuthProvider = ({ children }) => {
@@ -26,7 +26,7 @@ export const AuthProvider = ({ children }) => {
 
     for (let s of serversToTry) {
       try {
-        const res = await fetch(`https://cars-project-back.onrender.com/api`, {
+        const res = await fetch(`https://gps-it.ru/proxy.php`, {
           method: "POST",
           headers: {
             "Content-Type": "application/x-www-form-urlencoded",
