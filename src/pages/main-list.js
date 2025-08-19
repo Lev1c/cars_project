@@ -67,11 +67,18 @@ export const Main = () => {
     }).format(date);
   };
 
+  const handleLogout = () => {
+    // Здесь можно добавить логику выхода, если нужно
+    window.location.reload()
+    localStorage.removeItem("isAuthenticated");
+    localStorage.removeItem("username");
+  };
+
   return (
     <div className="container w-full mx-auto max-w-md p-4 pb-24">
-      <h1 className="text-xl font-semibold mb-4">Транспортные средства</h1>
+      <h1 className="text-xl font-semibold mb-4 flex justify-between">Транспортные средства<button onClick={handleLogout}><Icon icon="line-md:log-out" width="24" height="24" /></button></h1>
 
-      <div className="flex flex-col gap-2 mb-4">
+      <div className="flex flex-col gap-3 mb-4">
         <Input
           placeholder="Поиск по названию или номеру"
           value={searchQuery}
