@@ -25,6 +25,7 @@ export const ReportsPage = () => {
   const [carlistType, setCarListType] = useState();
   const [selectedCarId, setSelectedCarId] = useState();
   const [selectedVehicleId, setSelectedVehicleId] = useState();
+  const [selectedVehicleIndex, setSelectedVehicleIndex] = useState();
   const [aid, setAid] = useState();
   const [isLoading, setIsLoading] = useState(true);
   const [mapCord, setMapCord] = useState();
@@ -67,6 +68,7 @@ export const ReportsPage = () => {
   useEffect(() => {
     if (location.state?.selectedVehicleId) {
       setSelectedVehicleId("1");
+      setSelectedVehicleIndex(0)
       setAid(reportList[0]?.a);
       setSelectedCarId(String(IdCar.id));
     }
@@ -164,13 +166,13 @@ export const ReportsPage = () => {
   const handleGenerateReport = async () => {
     if (!selectedCarId || !startDate || !endDate || !selectedVehicleId) return;
 
-    setSearchAct(true)
+    setSearchAct(true);
     setIsGenerating(true);
     setReport(null);
 
     try {
       const response = await fetch(
-        `https://cars-project-back.onrender.com/api`,
+        `https://gps-it.ru/proxy.php`,
         {
           method: "POST",
           headers: {
@@ -190,7 +192,7 @@ export const ReportsPage = () => {
       );
 
       const responseMap = await fetch(
-        `https://cars-project-back.onrender.com/api`,
+        `https://gps-it.ru/proxy.php`,
         {
           method: "POST",
           headers: {
@@ -203,6 +205,7 @@ export const ReportsPage = () => {
             uid: selectedCarId,
             from: startDate,
             to: endDate,
+            resolve: "0",
           }),
         }
       );
@@ -210,17 +213,32 @@ export const ReportsPage = () => {
       const rawText = await response.text();
       const mapText = await responseMap.text();
 
-      const tripsData = extractAndParseXML(rawText, "unit_trips");
-      const mapData = extractAndParseJSONPayload(mapText, "unit_trips");
+      let tripsData = null;
+      let mapData = null;
 
-      setReport(tripsData);
-      setMapCord(mapData);
+      try {
+        tripsData = extractAndParseXML(rawText, "unit_trips");
+      } catch (err) {
+        console.warn("Не удалось распарсить XML:", err);
+      }
+
+      try {
+        mapData = extractAndParseJSONPayload(mapText, "unit_trips");
+      } catch (err) {
+        console.warn("Не удалось распарсить JSON:", err);
+      }
+
+      // сохраняем только то, что получилось
+      if (tripsData) setReport(tripsData);
+      if (mapData) setMapCord(mapData);
+
     } catch (error) {
       console.error("Ошибка при генерации отчёта:", error);
     } finally {
       setIsGenerating(false);
     }
   };
+
 
   const formatLocalDateTime = (date) => {
     const pad = (num) => String(num).padStart(2, "0");
@@ -255,31 +273,49 @@ export const ReportsPage = () => {
             selectedKeys={selectedCarId ? [selectedCarId] : []}
             onChange={(e) => setSelectedCarId(e.target.value)}
           >
-            {carlistType?.map((vehicle) => (
-              <SelectItem key={vehicle.id} value={vehicle.id}>
-                {vehicle.nm}
-              </SelectItem>
-            ))}
+            {carlistType
+              ?.slice() // копия массива, чтобы не мутировать оригинал
+              .sort((a, b) => {
+                // сначала сортировка по имени (nm) по алфавиту
+                const nameCompare = a.nm.localeCompare(b.nm, "ru"); // "ru" для кириллицы
+                if (nameCompare !== 0) return nameCompare;
+
+                // если имена одинаковые → сортировка по id по возрастанию
+                return a.id - b.id;
+              })
+              .map((vehicle) => (
+                <SelectItem key={vehicle.id} value={vehicle.id}>
+                  {vehicle.nm}
+                </SelectItem>
+              ))}
           </Select>
           <Select
             label="Вид отчета"
             placeholder="Выберите отчет"
-            selectedKeys={selectedVehicleId ? [selectedVehicleId] : []}
+            selectedKeys={selectedVehicleIndex !== null ? [String(selectedVehicleIndex)] : []}
             onChange={(e) => {
-              const selectedR = parseInt(e.target.value);
-              const selectedObj = listType.filter(item => !/групп[а-я]*/i.test(item.n)).find((item) => item.r === selectedR);
+              const selectedIndex = Number(e.target.value); // индекс в массиве
+              const filtered = listType.filter(item => !/групп[а-я]*/i.test(item.n));
+              const selectedObj = filtered[selectedIndex]; // берём по индексу
 
-              setSelectedVehicleId(e.target.value);
 
-              setAid(selectedObj.a);
+
+              if (selectedObj) {
+                setSelectedVehicleId(selectedObj.r);
+                setSelectedVehicleIndex(selectedIndex);
+                setAid(selectedObj.a);
+              }
             }}
           >
-            {listType.filter(item => !/групп[а-я]*/i.test(item.n))?.map((vehicle) => (
-              <SelectItem key={vehicle.r} value={vehicle.r}>
-                {vehicle.n}
-              </SelectItem>
-            ))}
+            {listType
+              .filter(item => !/групп[а-я]*/i.test(item.n))
+              .map((vehicle, index) => (
+                <SelectItem key={index} value={String(index)}>
+                  {vehicle.n}
+                </SelectItem>
+              ))}
           </Select>
+
 
           <div className="grid grid-cols-2 gap-4">
             <Input

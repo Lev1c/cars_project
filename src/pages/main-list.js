@@ -68,7 +68,7 @@ export const Main = () => {
   };
 
   const handleLogout = () => {
-    // Здесь можно добавить логику выхода, если нужно
+
     window.location.href = "/";
     localStorage.removeItem("isAuthenticated");
     localStorage.removeItem("username");
