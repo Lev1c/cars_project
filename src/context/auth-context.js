@@ -26,7 +26,7 @@ export const AuthProvider = ({ children }) => {
 
     for (let s of serversToTry) {
       try {
-        const res = await fetch(`https://gps-it.ru/proxy.php`, {
+        const res = await fetch(`https://cars-project-back.onrender.com/api`, {
           method: "POST",
           headers: {
             "Content-Type": "application/x-www-form-urlencoded",
