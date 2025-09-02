@@ -172,7 +172,7 @@ export const ReportsPage = () => {
 
     try {
       const response = await fetch(
-        `https://cars-project-back.onrender.com/api`,
+        `https://gps-it.ru/proxy.php`,
         {
           method: "POST",
           headers: {
@@ -192,7 +192,7 @@ export const ReportsPage = () => {
       );
 
       const responseMap = await fetch(
-        `https://cars-project-back.onrender.com/api`,
+        `https://gps-it.ru/proxy.php`,
         {
           method: "POST",
           headers: {
